@@ -1,0 +1,3 @@
+[submodule "tinyWASP-library"]
+	path = tinyWASP-library
+	url = https://github.com/serjzimmerman/tinyWASP-library.git
