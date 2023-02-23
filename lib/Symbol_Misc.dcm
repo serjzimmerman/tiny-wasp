@@ -1,0 +1,14 @@
+EESchema-DOCLIB  Version 2.0
+#
+$CMP LP4059
+D he LP4059is  a  complete  constant-current/constant-voltage linear    charger    for    single    cell    lithium-ion    batteries.
+K Li-Ion Battery Charger
+F https://datasheet.lcsc.com/lcsc/2004281203_LOWPOWER-LP4059QVF_C517025.pdf
+$ENDCMP
+#
+$CMP XB6096JS
+D One Cell Lithium-ion/Polymer Battery Protection IC
+F https://datasheet.lcsc.com/lcsc/2008112134_XySemi-XB6096JS_C712490.pdf
+$ENDCMP
+#
+#End Doc Library
