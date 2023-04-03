@@ -8,33 +8,21 @@
  * ----------------------------------------------------------------------------
  */
 
-#include <util/delay.h>
+#pragma once
 
-#include "attiny24a/ac.hpp"
-#include "attiny24a/adc.hpp"
-#include "attiny24a/boot_load.hpp"
-#include "attiny24a/eeprom.hpp"
 #include "attiny24a/porta.hpp"
-#include "attiny24a/tc0.hpp"
-#include "attiny24a/tc1.hpp"
-
-#include "led.hpp"
-
-namespace
-{
 
 using namespace avrcpp::attiny24a::mporta;
 
-} // namespace
-
-int
-main()
+struct led_indicator
 {
-    led_indicator::init();
-
-    while ( 1 )
+    static ALWAYS_INLINE void init()
     {
-        _delay_ms( 100 );
-        led_indicator::toggle();
+        reset();
+        ddra |= ddra_fields::pa7;
     }
-}
+
+    static ALWAYS_INLINE void set() { porta |= porta_fields::pa7; }
+    static ALWAYS_INLINE void reset() { porta &= ~porta_fields::pa7; }
+    static ALWAYS_INLINE void toggle() { porta ^= porta_fields::pa7; }
+};
