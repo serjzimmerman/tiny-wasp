@@ -36,13 +36,13 @@ constexpr auto usiclk = avrcpp::register_field<usicr_register, 1, 1>{ 1 };
 constexpr auto usiwm_normal_operation = avrcpp::register_field<usicr_register, 4, 2>{ 0 };
 
 // Three-Wire Mode
-constexpr auto usiwm_three_wire_mode = avrcpp::register_field<usicr_register, 4, 2>{ 0 };
+constexpr auto usiwm_three_wire_mode = avrcpp::register_field<usicr_register, 4, 2>{ 1 };
 
 // Two-Wire Mode
-constexpr auto usiwm_two_wire_mode = avrcpp::register_field<usicr_register, 4, 2>{ 0 };
+constexpr auto usiwm_two_wire_mode = avrcpp::register_field<usicr_register, 4, 2>{ 2 };
 
 // Two-Wire Mode Held Low
-constexpr auto usiwm_two_wire_mode_held_low = avrcpp::register_field<usicr_register, 4, 2>{ 0 };
+constexpr auto usiwm_two_wire_mode_held_low = avrcpp::register_field<usicr_register, 4, 2>{ 3 };
 
 // Counter Overflow Interrupt Enable
 constexpr auto usioie = avrcpp::register_field<usicr_register, 6, 1>{ 1 };

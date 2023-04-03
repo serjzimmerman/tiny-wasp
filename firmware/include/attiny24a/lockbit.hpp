@@ -25,10 +25,10 @@ namespace lockbit_fields
 constexpr auto lb_prog_ver_disabled = avrcpp::register_field<lockbit_register, 0, 2>{ 0 };
 
 // Further programming disabled
-constexpr auto lb_prog_disabled = avrcpp::register_field<lockbit_register, 0, 2>{ 0 };
+constexpr auto lb_prog_disabled = avrcpp::register_field<lockbit_register, 0, 2>{ 2 };
 
 // No memory lock features enabled
-constexpr auto lb_no_lock = avrcpp::register_field<lockbit_register, 0, 2>{ 0 };
+constexpr auto lb_no_lock = avrcpp::register_field<lockbit_register, 0, 2>{ 3 };
 
 } // namespace lockbit_fields
 

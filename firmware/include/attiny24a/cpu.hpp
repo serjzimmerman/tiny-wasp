@@ -25,28 +25,28 @@ namespace clkpr_fields
 constexpr auto clkps_1 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
 
 // 2
-constexpr auto clkps_2 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_2 = avrcpp::register_field<clkpr_register, 0, 4>{ 1 };
 
 // 4
-constexpr auto clkps_4 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_4 = avrcpp::register_field<clkpr_register, 0, 4>{ 2 };
 
 // 8
-constexpr auto clkps_8 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_8 = avrcpp::register_field<clkpr_register, 0, 4>{ 3 };
 
 // 16
-constexpr auto clkps_16 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_16 = avrcpp::register_field<clkpr_register, 0, 4>{ 4 };
 
 // 32
-constexpr auto clkps_32 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_32 = avrcpp::register_field<clkpr_register, 0, 4>{ 5 };
 
 // 64
-constexpr auto clkps_64 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_64 = avrcpp::register_field<clkpr_register, 0, 4>{ 6 };
 
 // 128
-constexpr auto clkps_128 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_128 = avrcpp::register_field<clkpr_register, 0, 4>{ 7 };
 
 // 256
-constexpr auto clkps_256 = avrcpp::register_field<clkpr_register, 0, 4>{ 0 };
+constexpr auto clkps_256 = avrcpp::register_field<clkpr_register, 0, 4>{ 8 };
 
 // Clock Prescaler Change Enable
 constexpr auto clkpce = avrcpp::register_field<clkpr_register, 7, 1>{ 1 };
@@ -80,13 +80,13 @@ namespace mcucr_fields
 constexpr auto sm_idle = avrcpp::register_field<mcucr_register, 3, 2>{ 0 };
 
 // ADC Noise Reduction (If Available)
-constexpr auto sm_adc = avrcpp::register_field<mcucr_register, 3, 2>{ 0 };
+constexpr auto sm_adc = avrcpp::register_field<mcucr_register, 3, 2>{ 1 };
 
 // Power Down
-constexpr auto sm_pdown = avrcpp::register_field<mcucr_register, 3, 2>{ 0 };
+constexpr auto sm_pdown = avrcpp::register_field<mcucr_register, 3, 2>{ 2 };
 
 // Standby
-constexpr auto sm_stdby = avrcpp::register_field<mcucr_register, 3, 2>{ 0 };
+constexpr auto sm_stdby = avrcpp::register_field<mcucr_register, 3, 2>{ 3 };
 
 // Sleep Enable
 constexpr auto se = avrcpp::register_field<mcucr_register, 5, 1>{ 1 };

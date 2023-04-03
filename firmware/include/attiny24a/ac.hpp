@@ -25,13 +25,13 @@ namespace acsr_fields
 constexpr auto acis_interrupt_on_toggle = avrcpp::register_field<acsr_register, 0, 2>{ 0 };
 
 // Reserved
-constexpr auto acis_reserved = avrcpp::register_field<acsr_register, 0, 2>{ 0 };
+constexpr auto acis_reserved = avrcpp::register_field<acsr_register, 0, 2>{ 1 };
 
 // Interrupt on Falling Edge
-constexpr auto acis_interrupt_on_falling_edge = avrcpp::register_field<acsr_register, 0, 2>{ 0 };
+constexpr auto acis_interrupt_on_falling_edge = avrcpp::register_field<acsr_register, 0, 2>{ 2 };
 
 // Interrupt on Rising Edge
-constexpr auto acis_interrupt_on_rising_edge = avrcpp::register_field<acsr_register, 0, 2>{ 0 };
+constexpr auto acis_interrupt_on_rising_edge = avrcpp::register_field<acsr_register, 0, 2>{ 3 };
 
 // Analog Comparator Input Capture Enable
 constexpr auto acic = avrcpp::register_field<acsr_register, 2, 1>{ 1 };

@@ -63,7 +63,7 @@ def generate_field(field):
     elif field.enumerated_values is not None and len(field.enumerated_values) != 0:
         for enum in field.enumerated_values:
             result += '// {}\nconstexpr auto {}_{} = avrcpp::register_field<{}_register, {}, {}>{{{}}};\n\n'.format(
-                enum.description, field.name.lower(), enum.name.lower(), reg.name.lower(), field.bit_offset, field.bit_width, 0)
+                enum.description, field.name.lower(), enum.name.lower(), reg.name.lower(), field.bit_offset, field.bit_width, enum.value)
         pass
 
     return result
@@ -85,6 +85,8 @@ def generate_register(base_address, reg):
 
     fields = ''
     for field in reg.fields:
+        if field.is_reserved:
+            continue
         fields += '{}\n'.format(generate_field(field))
 
     definition = 'using {}_register = avrcpp::register_wrapper<0x{:x}, {:d}, {}>;\n'.format(

@@ -51,13 +51,13 @@ namespace mcucr_fields
 constexpr auto isc0_low_level_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 0 };
 
 // Any Logical Change of INTX
-constexpr auto isc0_any_logical_change_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 0 };
+constexpr auto isc0_any_logical_change_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 1 };
 
 // Falling Edge of INTX
-constexpr auto isc0_falling_edge_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 0 };
+constexpr auto isc0_falling_edge_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 2 };
 
 // Rising Edge of INTX
-constexpr auto isc0_rising_edge_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 0 };
+constexpr auto isc0_rising_edge_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 3 };
 
 } // namespace mcucr_fields
 

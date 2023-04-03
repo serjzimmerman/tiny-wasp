@@ -42,10 +42,10 @@ constexpr auto eerie = avrcpp::register_field<eecr_register, 3, 1>{ 1 };
 constexpr auto eepm_erase_and_write_in_one_operation = avrcpp::register_field<eecr_register, 4, 2>{ 0 };
 
 // Erase Only
-constexpr auto eepm_erase_only = avrcpp::register_field<eecr_register, 4, 2>{ 0 };
+constexpr auto eepm_erase_only = avrcpp::register_field<eecr_register, 4, 2>{ 1 };
 
 // Write Only
-constexpr auto eepm_write_only = avrcpp::register_field<eecr_register, 4, 2>{ 0 };
+constexpr auto eepm_write_only = avrcpp::register_field<eecr_register, 4, 2>{ 2 };
 
 } // namespace eecr_fields
 

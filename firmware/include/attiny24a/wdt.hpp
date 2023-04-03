@@ -25,25 +25,25 @@ namespace wdtcsr_fields
 constexpr auto wdp_oscillator_cycles_2k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
 
 // Oscillator Cycles 4K
-constexpr auto wdp_oscillator_cycles_4k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_4k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 1 };
 
 // Oscillator Cycles 8K
-constexpr auto wdp_oscillator_cycles_8k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_8k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 2 };
 
 // Oscillator Cycles 16K
-constexpr auto wdp_oscillator_cycles_16k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_16k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 3 };
 
 // Oscillator Cycles 32K
-constexpr auto wdp_oscillator_cycles_32k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_32k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 4 };
 
 // Oscillator Cycles 64K
-constexpr auto wdp_oscillator_cycles_64k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_64k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 5 };
 
 // Oscillator Cycles 128K
-constexpr auto wdp_oscillator_cycles_128k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_128k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 6 };
 
 // Oscillator Cycles 256K
-constexpr auto wdp_oscillator_cycles_256k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 0 };
+constexpr auto wdp_oscillator_cycles_256k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 7 };
 
 // Watch Dog Enable
 constexpr auto wde = avrcpp::register_field<wdtcsr_register, 3, 1>{ 1 };

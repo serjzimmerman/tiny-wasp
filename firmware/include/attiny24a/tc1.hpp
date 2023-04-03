@@ -50,25 +50,25 @@ namespace tccr1b_fields
 constexpr auto cs1_no_clock_source_stopped = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
 
 // Running, No Prescaling
-constexpr auto cs1_running_no_prescaling = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_no_prescaling = avrcpp::register_field<tccr1b_register, 0, 3>{ 1 };
 
 // Running, CLK/8
-constexpr auto cs1_running_clk_8 = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_clk_8 = avrcpp::register_field<tccr1b_register, 0, 3>{ 2 };
 
 // Running, CLK/64
-constexpr auto cs1_running_clk_64 = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_clk_64 = avrcpp::register_field<tccr1b_register, 0, 3>{ 3 };
 
 // Running, CLK/256
-constexpr auto cs1_running_clk_256 = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_clk_256 = avrcpp::register_field<tccr1b_register, 0, 3>{ 4 };
 
 // Running, CLK/1024
-constexpr auto cs1_running_clk_1024 = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_clk_1024 = avrcpp::register_field<tccr1b_register, 0, 3>{ 5 };
 
 // Running, ExtClk Tn Falling Edge
-constexpr auto cs1_running_extclk_tn_falling_edge = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_extclk_tn_falling_edge = avrcpp::register_field<tccr1b_register, 0, 3>{ 6 };
 
 // Running, ExtClk Tn Rising Edge
-constexpr auto cs1_running_extclk_tn_rising_edge = avrcpp::register_field<tccr1b_register, 0, 3>{ 0 };
+constexpr auto cs1_running_extclk_tn_rising_edge = avrcpp::register_field<tccr1b_register, 0, 3>{ 7 };
 
 // Input Capture 1 Edge Select
 constexpr auto ices1 = avrcpp::register_field<tccr1b_register, 6, 1>{ 1 };
