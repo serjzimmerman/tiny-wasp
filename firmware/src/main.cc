@@ -1,7 +1,12 @@
 #include <util/delay.h>
 
+#include "attiny24a/ac.hpp"
 #include "attiny24a/adc.hpp"
+#include "attiny24a/boot_load.hpp"
+#include "attiny24a/eeprom.hpp"
 #include "attiny24a/porta.hpp"
+#include "attiny24a/tc0.hpp"
+#include "attiny24a/tc1.hpp"
 
 namespace
 {
