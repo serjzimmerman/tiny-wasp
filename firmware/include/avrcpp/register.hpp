@@ -178,19 +178,19 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
         return register_field{ lhs.underlying_value ^ rhs.underlying_value };
     }
 
-    ALWAYS_INLINE const register_field& operator|=( const register_type& rhs ) const&
+    ALWAYS_INLINE constexpr register_field& operator|=( const register_type& rhs ) const&
     {
         underlying_value |= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE const register_field& operator&=( const register_type& rhs ) const&
+    ALWAYS_INLINE constexpr register_field& operator&=( const register_type& rhs ) const&
     {
         underlying_value &= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE const register_field& operator^=( const register_type& rhs ) const&
+    ALWAYS_INLINE constexpr register_field& operator^=( const register_type& rhs ) const&
     {
         underlying_value ^= rhs;
         return *this;
