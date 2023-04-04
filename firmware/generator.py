@@ -64,8 +64,14 @@ def generate_field(field):
         for enum in field.enumerated_values:
             result += '// {}\nconstexpr auto {}_{} = avrcpp::register_field<{}_register, {}, {}>{{{}}};\n\n'.format(
                 enum.description, field.name.lower(), enum.name.lower(), reg.name.lower(), field.bit_offset, field.bit_width, enum.value)
-        pass
-
+        result += 'using {} = avrcpp::register_field<{}_register, {}, {}>;\n\n'.format(
+            field.name.lower(), reg.name.lower(), field.bit_offset, field.bit_width)
+    else:
+        for i in range(0, int(2 ** field.bit_width)):
+            result += 'constexpr auto {}_{:d} = avrcpp::register_field<{}_register, {}, {}>{{{}}};\n\n'.format(
+                field.name.lower(), i, reg.name.lower(), field.bit_offset, field.bit_width, i)
+        result += 'using {} = avrcpp::register_field<{}_register, {}, {}>;\n\n'.format(
+            field.name.lower(), reg.name.lower(), field.bit_offset, field.bit_width)
     return result
 
 
@@ -87,6 +93,7 @@ def generate_register(base_address, reg):
     for field in reg.fields:
         if field.is_reserved:
             continue
+        print('{}:{}'.format(reg.name, field.name))
         fields += '{}\n'.format(generate_field(field))
 
     definition = 'using {}_register = avrcpp::register_wrapper<0x{:x}, {:d}, {}>;\n'.format(

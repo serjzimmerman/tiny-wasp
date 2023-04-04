@@ -47,6 +47,36 @@ using tccr0a_register = avrcpp::register_wrapper<0x50, 1, avrcpp::read_write_fla
 namespace tccr0a_fields
 {
 
+constexpr auto wgm0_0 = avrcpp::register_field<tccr0a_register, 0, 2>{ 0 };
+
+constexpr auto wgm0_1 = avrcpp::register_field<tccr0a_register, 0, 2>{ 1 };
+
+constexpr auto wgm0_2 = avrcpp::register_field<tccr0a_register, 0, 2>{ 2 };
+
+constexpr auto wgm0_3 = avrcpp::register_field<tccr0a_register, 0, 2>{ 3 };
+
+using wgm0 = avrcpp::register_field<tccr0a_register, 0, 2>;
+
+constexpr auto com0b_0 = avrcpp::register_field<tccr0a_register, 4, 2>{ 0 };
+
+constexpr auto com0b_1 = avrcpp::register_field<tccr0a_register, 4, 2>{ 1 };
+
+constexpr auto com0b_2 = avrcpp::register_field<tccr0a_register, 4, 2>{ 2 };
+
+constexpr auto com0b_3 = avrcpp::register_field<tccr0a_register, 4, 2>{ 3 };
+
+using com0b = avrcpp::register_field<tccr0a_register, 4, 2>;
+
+constexpr auto com0a_0 = avrcpp::register_field<tccr0a_register, 6, 2>{ 0 };
+
+constexpr auto com0a_1 = avrcpp::register_field<tccr0a_register, 6, 2>{ 1 };
+
+constexpr auto com0a_2 = avrcpp::register_field<tccr0a_register, 6, 2>{ 2 };
+
+constexpr auto com0a_3 = avrcpp::register_field<tccr0a_register, 6, 2>{ 3 };
+
+using com0a = avrcpp::register_field<tccr0a_register, 6, 2>;
+
 } // namespace tccr0a_fields
 
 constexpr auto tccr0a = tccr0a_register{};
@@ -80,6 +110,8 @@ constexpr auto cs0_running_extclk_tn_falling_edge = avrcpp::register_field<tccr0
 
 // Running, ExtClk Tn Rising Edge
 constexpr auto cs0_running_extclk_tn_rising_edge = avrcpp::register_field<tccr0b_register, 0, 3>{ 7 };
+
+using cs0 = avrcpp::register_field<tccr0b_register, 0, 3>;
 
 // Waveform Generation Mode bit 2
 constexpr auto wgm02 = avrcpp::register_field<tccr0b_register, 3, 1>{ 1 };

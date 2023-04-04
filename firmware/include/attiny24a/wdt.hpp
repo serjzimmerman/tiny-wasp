@@ -45,6 +45,8 @@ constexpr auto wdp_oscillator_cycles_128k = avrcpp::register_field<wdtcsr_regist
 // Oscillator Cycles 256K
 constexpr auto wdp_oscillator_cycles_256k = avrcpp::register_field<wdtcsr_register, 0, 6>{ 7 };
 
+using wdp = avrcpp::register_field<wdtcsr_register, 0, 6>;
+
 // Watch Dog Enable
 constexpr auto wde = avrcpp::register_field<wdtcsr_register, 3, 1>{ 1 };
 

@@ -21,6 +21,16 @@ using gifr_register = avrcpp::register_wrapper<0x5a, 1, avrcpp::read_write_flag>
 namespace gifr_fields
 {
 
+constexpr auto pcif_0 = avrcpp::register_field<gifr_register, 4, 2>{ 0 };
+
+constexpr auto pcif_1 = avrcpp::register_field<gifr_register, 4, 2>{ 1 };
+
+constexpr auto pcif_2 = avrcpp::register_field<gifr_register, 4, 2>{ 2 };
+
+constexpr auto pcif_3 = avrcpp::register_field<gifr_register, 4, 2>{ 3 };
+
+using pcif = avrcpp::register_field<gifr_register, 4, 2>;
+
 // External Interrupt Flag 0
 constexpr auto intf0 = avrcpp::register_field<gifr_register, 6, 1>{ 1 };
 
@@ -33,6 +43,16 @@ using gimsk_register = avrcpp::register_wrapper<0x5b, 1, avrcpp::read_write_flag
 
 namespace gimsk_fields
 {
+
+constexpr auto pcie_0 = avrcpp::register_field<gimsk_register, 4, 2>{ 0 };
+
+constexpr auto pcie_1 = avrcpp::register_field<gimsk_register, 4, 2>{ 1 };
+
+constexpr auto pcie_2 = avrcpp::register_field<gimsk_register, 4, 2>{ 2 };
+
+constexpr auto pcie_3 = avrcpp::register_field<gimsk_register, 4, 2>{ 3 };
+
+using pcie = avrcpp::register_field<gimsk_register, 4, 2>;
 
 // External Interrupt Request 0 Enable
 constexpr auto int0 = avrcpp::register_field<gimsk_register, 6, 1>{ 1 };
@@ -58,6 +78,8 @@ constexpr auto isc0_falling_edge_of_intx = avrcpp::register_field<mcucr_register
 
 // Rising Edge of INTX
 constexpr auto isc0_rising_edge_of_intx = avrcpp::register_field<mcucr_register, 0, 2>{ 3 };
+
+using isc0 = avrcpp::register_field<mcucr_register, 0, 2>;
 
 } // namespace mcucr_fields
 

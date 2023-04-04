@@ -11,3 +11,19 @@
 #pragma once
 
 #define ALWAYS_INLINE __attribute__( ( always_inline ) )
+
+namespace util
+{
+
+template <auto T>
+consteval void
+static_print()
+{
+#if !defined( __GNUC__ ) || defined( __clang__ )
+    int static_print_is_implemented_only_for_gcc = 0;
+#else
+    int unused = 0;
+#endif
+}
+
+} // namespace util

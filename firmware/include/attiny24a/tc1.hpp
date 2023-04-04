@@ -36,6 +36,36 @@ using tccr1a_register = avrcpp::register_wrapper<0x4f, 1, avrcpp::read_write_fla
 namespace tccr1a_fields
 {
 
+constexpr auto wgm1_0 = avrcpp::register_field<tccr1a_register, 0, 2>{ 0 };
+
+constexpr auto wgm1_1 = avrcpp::register_field<tccr1a_register, 0, 2>{ 1 };
+
+constexpr auto wgm1_2 = avrcpp::register_field<tccr1a_register, 0, 2>{ 2 };
+
+constexpr auto wgm1_3 = avrcpp::register_field<tccr1a_register, 0, 2>{ 3 };
+
+using wgm1 = avrcpp::register_field<tccr1a_register, 0, 2>;
+
+constexpr auto com1b_0 = avrcpp::register_field<tccr1a_register, 4, 2>{ 0 };
+
+constexpr auto com1b_1 = avrcpp::register_field<tccr1a_register, 4, 2>{ 1 };
+
+constexpr auto com1b_2 = avrcpp::register_field<tccr1a_register, 4, 2>{ 2 };
+
+constexpr auto com1b_3 = avrcpp::register_field<tccr1a_register, 4, 2>{ 3 };
+
+using com1b = avrcpp::register_field<tccr1a_register, 4, 2>;
+
+constexpr auto com1a_0 = avrcpp::register_field<tccr1a_register, 6, 2>{ 0 };
+
+constexpr auto com1a_1 = avrcpp::register_field<tccr1a_register, 6, 2>{ 1 };
+
+constexpr auto com1a_2 = avrcpp::register_field<tccr1a_register, 6, 2>{ 2 };
+
+constexpr auto com1a_3 = avrcpp::register_field<tccr1a_register, 6, 2>{ 3 };
+
+using com1a = avrcpp::register_field<tccr1a_register, 6, 2>;
+
 } // namespace tccr1a_fields
 
 constexpr auto tccr1a = tccr1a_register{};
@@ -69,6 +99,18 @@ constexpr auto cs1_running_extclk_tn_falling_edge = avrcpp::register_field<tccr1
 
 // Running, ExtClk Tn Rising Edge
 constexpr auto cs1_running_extclk_tn_rising_edge = avrcpp::register_field<tccr1b_register, 0, 3>{ 7 };
+
+using cs1 = avrcpp::register_field<tccr1b_register, 0, 3>;
+
+constexpr auto wgm1_0 = avrcpp::register_field<tccr1b_register, 3, 2>{ 0 };
+
+constexpr auto wgm1_1 = avrcpp::register_field<tccr1b_register, 3, 2>{ 1 };
+
+constexpr auto wgm1_2 = avrcpp::register_field<tccr1b_register, 3, 2>{ 2 };
+
+constexpr auto wgm1_3 = avrcpp::register_field<tccr1b_register, 3, 2>{ 3 };
+
+using wgm1 = avrcpp::register_field<tccr1b_register, 3, 2>;
 
 // Input Capture 1 Edge Select
 constexpr auto ices1 = avrcpp::register_field<tccr1b_register, 6, 1>{ 1 };

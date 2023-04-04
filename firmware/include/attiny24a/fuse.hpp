@@ -46,6 +46,8 @@ constexpr auto bodlevel_1v8 = avrcpp::register_field<high_register, 0, 3>{ 6 };
 // Brown-out detection disabled
 constexpr auto bodlevel_disabled = avrcpp::register_field<high_register, 0, 3>{ 7 };
 
+using bodlevel = avrcpp::register_field<high_register, 0, 3>;
+
 // Preserve EEPROM through the Chip Erase cycle
 constexpr auto eesave = avrcpp::register_field<high_register, 3, 1>{ 1 };
 
@@ -202,6 +204,8 @@ constexpr auto sut_cksel_extxosc_8mhz_xx_1kck_14ck_4ms1 = avrcpp::register_field
 
 // Ext. Crystal Osc. 8.0-    MHz; Start-up time PWRDWN/RESET: 16K CK/14 CK + 65 ms
 constexpr auto sut_cksel_extxosc_8mhz_xx_16kck_14ck_65ms = avrcpp::register_field<low_register, 0, 6>{ 63 };
+
+using sut_cksel = avrcpp::register_field<low_register, 0, 6>;
 
 // Clock output on PORTB2
 constexpr auto ckout = avrcpp::register_field<low_register, 6, 1>{ 1 };

@@ -47,6 +47,8 @@ constexpr auto eepm_erase_only = avrcpp::register_field<eecr_register, 4, 2>{ 1 
 // Write Only
 constexpr auto eepm_write_only = avrcpp::register_field<eecr_register, 4, 2>{ 2 };
 
+using eepm = avrcpp::register_field<eecr_register, 4, 2>;
+
 } // namespace eecr_fields
 
 constexpr auto eecr = eecr_register{};

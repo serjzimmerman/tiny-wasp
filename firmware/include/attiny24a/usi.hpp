@@ -32,6 +32,16 @@ constexpr auto usitc = avrcpp::register_field<usicr_register, 0, 1>{ 1 };
 // Clock Strobe
 constexpr auto usiclk = avrcpp::register_field<usicr_register, 1, 1>{ 1 };
 
+constexpr auto usics_0 = avrcpp::register_field<usicr_register, 2, 2>{ 0 };
+
+constexpr auto usics_1 = avrcpp::register_field<usicr_register, 2, 2>{ 1 };
+
+constexpr auto usics_2 = avrcpp::register_field<usicr_register, 2, 2>{ 2 };
+
+constexpr auto usics_3 = avrcpp::register_field<usicr_register, 2, 2>{ 3 };
+
+using usics = avrcpp::register_field<usicr_register, 2, 2>;
+
 // Normal Operation
 constexpr auto usiwm_normal_operation = avrcpp::register_field<usicr_register, 4, 2>{ 0 };
 
@@ -43,6 +53,8 @@ constexpr auto usiwm_two_wire_mode = avrcpp::register_field<usicr_register, 4, 2
 
 // Two-Wire Mode Held Low
 constexpr auto usiwm_two_wire_mode_held_low = avrcpp::register_field<usicr_register, 4, 2>{ 3 };
+
+using usiwm = avrcpp::register_field<usicr_register, 4, 2>;
 
 // Counter Overflow Interrupt Enable
 constexpr auto usioie = avrcpp::register_field<usicr_register, 6, 1>{ 1 };
@@ -64,6 +76,40 @@ using usisr_register = avrcpp::register_wrapper<0x2e, 1, avrcpp::read_write_flag
 
 namespace usisr_fields
 {
+
+constexpr auto usicnt_0 = avrcpp::register_field<usisr_register, 0, 4>{ 0 };
+
+constexpr auto usicnt_1 = avrcpp::register_field<usisr_register, 0, 4>{ 1 };
+
+constexpr auto usicnt_2 = avrcpp::register_field<usisr_register, 0, 4>{ 2 };
+
+constexpr auto usicnt_3 = avrcpp::register_field<usisr_register, 0, 4>{ 3 };
+
+constexpr auto usicnt_4 = avrcpp::register_field<usisr_register, 0, 4>{ 4 };
+
+constexpr auto usicnt_5 = avrcpp::register_field<usisr_register, 0, 4>{ 5 };
+
+constexpr auto usicnt_6 = avrcpp::register_field<usisr_register, 0, 4>{ 6 };
+
+constexpr auto usicnt_7 = avrcpp::register_field<usisr_register, 0, 4>{ 7 };
+
+constexpr auto usicnt_8 = avrcpp::register_field<usisr_register, 0, 4>{ 8 };
+
+constexpr auto usicnt_9 = avrcpp::register_field<usisr_register, 0, 4>{ 9 };
+
+constexpr auto usicnt_10 = avrcpp::register_field<usisr_register, 0, 4>{ 10 };
+
+constexpr auto usicnt_11 = avrcpp::register_field<usisr_register, 0, 4>{ 11 };
+
+constexpr auto usicnt_12 = avrcpp::register_field<usisr_register, 0, 4>{ 12 };
+
+constexpr auto usicnt_13 = avrcpp::register_field<usisr_register, 0, 4>{ 13 };
+
+constexpr auto usicnt_14 = avrcpp::register_field<usisr_register, 0, 4>{ 14 };
+
+constexpr auto usicnt_15 = avrcpp::register_field<usisr_register, 0, 4>{ 15 };
+
+using usicnt = avrcpp::register_field<usisr_register, 0, 4>;
 
 // Data Output Collision
 constexpr auto usidc = avrcpp::register_field<usisr_register, 4, 1>{ 1 };

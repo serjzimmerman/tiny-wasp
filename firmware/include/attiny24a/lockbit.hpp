@@ -30,6 +30,8 @@ constexpr auto lb_prog_disabled = avrcpp::register_field<lockbit_register, 0, 2>
 // No memory lock features enabled
 constexpr auto lb_no_lock = avrcpp::register_field<lockbit_register, 0, 2>{ 3 };
 
+using lb = avrcpp::register_field<lockbit_register, 0, 2>;
+
 } // namespace lockbit_fields
 
 constexpr auto lockbit = lockbit_register{};
