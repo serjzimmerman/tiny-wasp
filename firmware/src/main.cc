@@ -33,12 +33,12 @@ struct led_indicator
 {
     static ALWAYS_INLINE void init()
     {
-        reset();
+        disable();
         ddra |= ddra_fields::pa7;
     }
 
-    static ALWAYS_INLINE void set() { porta |= porta_fields::pa7; }
-    static ALWAYS_INLINE void reset() { porta &= ~porta_fields::pa7; }
+    static ALWAYS_INLINE void enable() { porta &= ~porta_fields::pa7; }
+    static ALWAYS_INLINE void disable() { porta |= porta_fields::pa7; }
     static ALWAYS_INLINE void toggle() { porta ^= porta_fields::pa7; }
 };
 
@@ -97,13 +97,9 @@ struct buzzer
 
     static consteval auto get_tccr0b_value()
     {
-        constexpr auto clock = get_output_compare().clock;
-        util::static_print<+clock>();
-
         auto val = tccr1b_register::register_type{ 0 };
 
         // Mode 7: Fast PWM
-        val |= clock;
         val |= tccr1b_fields::wgm1_3;
 
         return val;
@@ -119,6 +115,15 @@ struct buzzer
         tccr1a = get_tccr0a_value();
         tccr1b = get_tccr0b_value();
     }
+
+    static ALWAYS_INLINE void enable()
+    {
+        constexpr auto clock = get_output_compare().clock;
+        util::static_print<+clock>();
+        tccr1b |= clock;
+    }
+
+    static ALWAYS_INLINE void disable() { tccr1b &= ~tccr1b_fields::cs1::mask; }
 };
 
 // clang-format off
@@ -141,10 +146,13 @@ main()
 {
     initialize<led_indicator, buzzer>();
 
+    buzzer::enable();
+    led_indicator::enable();
+
     while ( 1 )
     {
         _delay_ms( 500 );
-        ddra ^= ddra_fields::pa6;
         led_indicator::toggle();
+        ddra ^= ddra_fields::pa6;
     }
 }
