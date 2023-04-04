@@ -93,7 +93,6 @@ def generate_register(base_address, reg):
     for field in reg.fields:
         if field.is_reserved:
             continue
-        print('{}:{}'.format(reg.name, field.name))
         fields += '{}\n'.format(generate_field(field))
 
     definition = 'using {}_register = avrcpp::register_wrapper<0x{:x}, {:d}, {}>;\n'.format(
@@ -130,5 +129,4 @@ def generate_peripheral(per):
 parser = SVDParser.for_xml_file(svd_path)
 
 for peripheral in parser.get_device().peripherals:
-    print("%s @ 0x%08x" % (peripheral.name, peripheral.base_address))
     generate_peripheral(peripheral)

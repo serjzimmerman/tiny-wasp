@@ -8,6 +8,7 @@
  * ----------------------------------------------------------------------------
  */
 
+#include <avr/io.h>
 #include <util/delay.h>
 
 #include "attiny24a/ac.hpp"
@@ -41,7 +42,7 @@ struct led_indicator
     static ALWAYS_INLINE void toggle() { porta ^= porta_fields::pa7; }
 };
 
-using namespace avrcpp::attiny24a::mtc0;
+using namespace avrcpp::attiny24a::mtc1;
 
 struct buzzer
 {
@@ -49,21 +50,21 @@ struct buzzer
 
     struct clock_values
     {
-        ocr0a_register::register_type compare;
-        tccr0b_fields::cs0 clock;
+        ocr1a_register::register_type compare;
+        tccr1b_fields::cs1 clock;
     };
 
     static consteval clock_values get_output_compare()
     {
-        auto prescalers = std::array{ 1.0f, 8.0f, 64.0f, 256.0f, 1024.0f };
+        auto prescalers = std::array{ 1.0, 8.0, 64.0, 256.0, 1024.0 };
         std::array<float, prescalers.size()> ocr;
 
         std::transform( prescalers.begin(), prescalers.end(), ocr.begin(), []( auto&& n ) {
-            return cpu_frequence / ( 2.0f * n * target_frequency ) - 1;
+            return cpu_frequence / ( 2.0 * n * target_frequency ) - 1;
         } );
 
         auto found =
-            std::find_if( ocr.begin(), ocr.end(), []( auto&& ocr ) { return ( ocr >= 0.0f ) && ( ocr <= 255.0f ); } );
+            std::find_if( ocr.begin(), ocr.end(), []( auto&& ocr ) { return ( ocr >= 0.0 ) && ( ocr <= 255.0 ); } );
 
         if ( found == ocr.end() )
         {
@@ -72,49 +73,51 @@ struct buzzer
 
         auto index = std::distance( ocr.begin(), found );
 
-        using namespace tccr0b_fields;
+        using namespace tccr1b_fields;
         auto clock = std::array{
-            cs0_running_no_prescaling,
-            cs0_running_clk_8,
-            cs0_running_clk_64,
-            cs0_running_clk_64,
-            cs0_running_clk_256,
-            cs0_running_clk_1024 };
+            cs1_running_no_prescaling,
+            cs1_running_clk_8,
+            cs1_running_clk_64,
+            cs1_running_clk_64,
+            cs1_running_clk_256,
+            cs1_running_clk_1024 };
 
-        return clock_values{ static_cast<ocr0a_register::register_type>( *found ), clock.at( index ) };
+        return clock_values{ static_cast<ocr1a_register::register_type>( *found ), clock.at( index ) };
     }
 
-    consteval auto get_tccr0a_value()
+    static consteval auto get_tccr0a_value()
     {
-        auto val = tccr0a_register::register_type{ 0 };
+        auto val = tccr1a_register::register_type{ 0 };
 
-        val |= tccr0a_fields::wgm0_3;  // Mode 7: Fast PWM
-        val |= tccr0a_fields::com0a_1; // Toggle OC0A on compare match
+        val |= tccr1a_fields::wgm1_3;  // Mode 7: Fast PWM
+        val |= tccr1a_fields::com1a_1; // Toggle OC0A on compare match
 
         return val;
     }
 
-    consteval auto get_tccr0b_value()
+    static consteval auto get_tccr0b_value()
     {
-        auto val = tccr0b_register::register_type{};
+        constexpr auto clock = get_output_compare().clock;
+        util::static_print<+clock>();
+
+        auto val = tccr1b_register::register_type{ 0 };
 
         // Mode 7: Fast PWM
-        val |= tccr0b_fields::wgm02;
+        val |= clock;
+        val |= tccr1b_fields::wgm1_3;
 
         return val;
     }
 
     static ALWAYS_INLINE void init()
     {
+        constexpr auto compare = get_output_compare().compare;
+        util::static_print<compare>();
+
         ddra |= ddra_fields::pa6; // Set the port as output.
-
-        constexpr clock_values prescalers = get_output_compare();
-        util::static_print<prescalers.compare>();
-        util::static_print<prescalers.clock>();
-
-        // ocr0a = get_output_compare();
-        tccr0a_fields::wgm0_3;
-        tccr0b_fields::wgm02;
+        ocr1a = compare;
+        tccr1a = get_tccr0a_value();
+        tccr1b = get_tccr0b_value();
     }
 };
 
@@ -136,11 +139,12 @@ initialize()
 int
 main()
 {
-    initialize<led_indicator>();
+    initialize<led_indicator, buzzer>();
 
     while ( 1 )
     {
-        _delay_ms( 100 );
+        _delay_ms( 500 );
+        ddra ^= ddra_fields::pa6;
         led_indicator::toggle();
     }
 }
