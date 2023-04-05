@@ -85,30 +85,44 @@ using namespace avrcpp::attiny24a::mtc0;
 struct tim0_flag;
 struct tim1_flag;
 
-template <typename flag> constexpr auto timer_prescaler_array = 0; // Primary template
+namespace detail
+{
 
-template <>
-constexpr auto timer_prescaler_array<tim0_flag> = std::array{
-    tccr0b_fields::cs0_running_no_prescaling,
-    tccr0b_fields::cs0_running_clk_8,
-    tccr0b_fields::cs0_running_clk_64,
-    tccr0b_fields::cs0_running_clk_64,
-    tccr0b_fields::cs0_running_clk_256,
-    tccr0b_fields::cs0_running_clk_1024 };
+template <typename flag> struct timer_prescaler_array_impl
+{
+};
 
-template <>
-constexpr auto timer_prescaler_array<tim1_flag> = std::array{
-    tccr1b_fields::cs1_running_no_prescaling,
-    tccr1b_fields::cs1_running_clk_8,
-    tccr1b_fields::cs1_running_clk_64,
-    tccr1b_fields::cs1_running_clk_64,
-    tccr1b_fields::cs1_running_clk_256,
-    tccr1b_fields::cs1_running_clk_1024 };
+template <> struct timer_prescaler_array_impl<tim0_flag>
+{
+    static constexpr auto value = std::array{
+        tccr0b_fields::cs0_running_no_prescaling,
+        tccr0b_fields::cs0_running_clk_8,
+        tccr0b_fields::cs0_running_clk_64,
+        tccr0b_fields::cs0_running_clk_64,
+        tccr0b_fields::cs0_running_clk_256,
+        tccr0b_fields::cs0_running_clk_1024 };
+};
+
+template <> struct timer_prescaler_array_impl<tim1_flag>
+{
+    static constexpr auto value = std::array{
+        tccr1b_fields::cs1_running_no_prescaling,
+        tccr1b_fields::cs1_running_clk_8,
+        tccr1b_fields::cs1_running_clk_64,
+        tccr1b_fields::cs1_running_clk_64,
+        tccr1b_fields::cs1_running_clk_256,
+        tccr1b_fields::cs1_running_clk_1024 };
+};
+
+} // namespace detail
 
 struct clock_values
 {
     uint8_t compare, clock;
 };
+
+template <typename flag>
+constexpr auto timer_prescaler_array = detail::timer_prescaler_array_impl<flag>::value; // Primary template
 
 template <typename flag>
 consteval clock_values
@@ -182,8 +196,38 @@ struct buzzer
 
 using namespace avrcpp::attiny24a::madc;
 
+struct internal_bandgap
+{
+};
+
+template <typename T> constexpr double reference_voltage = 0.0;
+template <> constexpr double reference_voltage<internal_bandgap> = 1.1;
+
+template <typename flag>
+consteval uint16_t
+voltage_value( long double voltage )
+{
+    constexpr double reference = reference_voltage<internal_bandgap>;
+
+    double value = voltage / reference * 1024;
+
+    if ( value < std::numeric_limits<uint16_t>::min() || value > std::numeric_limits<uint16_t>::max() )
+    {
+        throw "Voltage out of range";
+    }
+
+    return static_cast<uint16_t>( value );
+}
+
+consteval uint16_t operator"" _v( long double voltage )
+{
+    return voltage_value<internal_bandgap>( voltage );
+}
+
 struct voltage_reader
 {
+    static constexpr double divider = 11.0;
+
     static ALWAYS_INLINE void init()
     {
         adcsra = adcsra_fields::aden;
@@ -194,8 +238,7 @@ struct voltage_reader
     {
         adcsra |= adcsra_fields::adsc;
         while ( adcsra & adcsra_fields::adsc )
-        {
-            asm volatile( "" ); // Busy wait loop
+        { // Busy waiting loop
         }
         return adc;
     }
@@ -263,7 +306,7 @@ main()
     while ( true )
     {
         auto vcc = voltage_reader::read_vcc();
-        if ( !is_charging() && vcc <= 330 )
+        if ( !is_charging() && vcc <= 0.35_v )
         {
             led_indicator::toggle();
             _delay_ms( 200 );
