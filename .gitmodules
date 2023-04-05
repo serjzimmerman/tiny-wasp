@@ -1,3 +1,6 @@
 [submodule "firmware/avr-libstdcpp"]
-	path = firmware/avr-libstdcpp
+	path = firmware/3rd-party/avr-libstdcpp
 	url = https://github.com/modm-io/avr-libstdcpp.git
+[submodule "fpm"]
+	path = firmware/3rd-party/fpm
+	url = https://github.com/serjzimmerman/fpm

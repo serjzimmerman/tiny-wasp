@@ -21,6 +21,8 @@
 #include "attiny24a/tc0.hpp"
 #include "attiny24a/tc1.hpp"
 
+#include <fpm/fixed.hpp>
+
 #include <algorithm>
 #include <array>
 #include <bit>
@@ -29,6 +31,9 @@
 
 namespace
 {
+
+using ufixed16_t = fpm::fixed<std::uint16_t, std::uint32_t, 8>;
+using ufixed8_t = fpm::fixed<std::uint8_t, std::uint16_t, 4>;
 
 template <auto&> class eeprom_variable_wrapper
 { // Primary template
@@ -46,19 +51,19 @@ class eeprom_variable_wrapper<variable_storage>
   public:
     eeprom_variable_wrapper() = default;
 
-    ALWAYS_INLINE eeprom_variable_wrapper& operator=( const T& rhs )
+    eeprom_variable_wrapper& operator=( const T& rhs )
     {
         eeprom_write_byte( eep_ptr(), *reinterpret_cast<const uint8_t*>( &rhs ) );
         return *this;
     }
 
     // clang-format off
-    ALWAYS_INLINE operator T() const { auto res = eeprom_read_byte( eep_ptr() ); return *reinterpret_cast<T *>(&res); }
-    ALWAYS_INLINE eeprom_variable_wrapper& operator|=( const T& rhs ) const& { *this = +*this | rhs; return *this; }
-    ALWAYS_INLINE eeprom_variable_wrapper& operator&=( const T& rhs ) const& { *this = +*this & rhs; return *this; }
-    ALWAYS_INLINE eeprom_variable_wrapper& operator^=( const T& rhs ) const& { *this = +*this ^ rhs; return *this; }
-    ALWAYS_INLINE eeprom_variable_wrapper& operator+=( const T& rhs ) const& { *this = +*this + rhs; return *this; }
-    ALWAYS_INLINE eeprom_variable_wrapper& operator-=( const T& rhs ) const& { *this = +*this - rhs; return *this; }
+    operator T() const { auto res = eeprom_read_byte( eep_ptr() ); return *reinterpret_cast<T *>(&res); }
+    eeprom_variable_wrapper& operator|=( const T& rhs ) const& { *this = +*this | rhs; return *this; }
+    eeprom_variable_wrapper& operator&=( const T& rhs ) const& { *this = +*this & rhs; return *this; }
+    eeprom_variable_wrapper& operator^=( const T& rhs ) const& { *this = +*this ^ rhs; return *this; }
+    eeprom_variable_wrapper& operator+=( const T& rhs ) const& { *this = +*this + rhs; return *this; }
+    eeprom_variable_wrapper& operator-=( const T& rhs ) const& { *this = +*this - rhs; return *this; }
     // clang-format on
 };
 
@@ -68,15 +73,15 @@ constexpr float cpu_frequence = F_CPU;
 
 struct led_indicator
 {
-    static ALWAYS_INLINE void init()
+    static void init()
     {
         disable();
         ddra |= ddra_fields::pa7;
     }
 
-    static ALWAYS_INLINE void enable() { porta &= ~porta_fields::pa7; }
-    static ALWAYS_INLINE void disable() { porta |= porta_fields::pa7; }
-    static ALWAYS_INLINE void toggle() { porta ^= porta_fields::pa7; }
+    static void enable() { porta &= ~porta_fields::pa7; }
+    static void disable() { porta |= porta_fields::pa7; }
+    static void toggle() { porta ^= porta_fields::pa7; }
 };
 
 using namespace avrcpp::attiny24a::mtc1;
@@ -173,25 +178,21 @@ struct buzzer
         return val;
     }
 
-    static ALWAYS_INLINE void init()
+    static void init()
     {
-        constexpr auto compare = timer_prescalers<tim1_flag>( target_frequency ).compare;
-        util::static_print<compare>();
-
         ddra |= ddra_fields::pa6; // Set the port as output.
-        ocr1a = compare;
+        ocr1a = timer_prescalers<tim1_flag>( target_frequency ).compare;
         tccr1a = get_tccr0a_value();
         tccr1b = get_tccr0b_value();
     }
 
-    static ALWAYS_INLINE void enable()
+    static void enable()
     {
         constexpr auto clock = timer_prescalers<tim1_flag>( target_frequency ).clock;
-        util::static_print<+clock>();
         tccr1b |= clock;
     }
 
-    static ALWAYS_INLINE void disable() { tccr1b &= ~tccr1b_fields::cs1::mask; }
+    static void disable() { tccr1b &= ~tccr1b_fields::cs1::mask; }
 };
 
 using namespace avrcpp::attiny24a::madc;
@@ -203,44 +204,78 @@ struct internal_bandgap
 template <typename T> constexpr double reference_voltage = 0.0;
 template <> constexpr double reference_voltage<internal_bandgap> = 1.1;
 
+template <typename T> constexpr ufixed16_t reference_voltage_fp16 = ufixed16_t{ reference_voltage<T> };
+template <typename T> constexpr ufixed8_t reference_voltage_fp8 = ufixed8_t{ reference_voltage<T> };
+
 template <typename flag>
-consteval uint16_t
+consteval ufixed8_t
 voltage_value( long double voltage )
 {
-    constexpr double reference = reference_voltage<internal_bandgap>;
-
-    double value = voltage / reference * 1024;
-
-    if ( value < std::numeric_limits<uint16_t>::min() || value > std::numeric_limits<uint16_t>::max() )
+    if ( voltage < static_cast<double>( std::numeric_limits<ufixed8_t>::min() ) ||
+         voltage > static_cast<double>( std::numeric_limits<ufixed8_t>::max() ) )
     {
         throw "Voltage out of range";
     }
 
-    return static_cast<uint16_t>( value );
+    return ufixed8_t{ voltage };
 }
 
-consteval uint16_t operator"" _v( long double voltage )
+consteval ufixed8_t operator"" _v( long double voltage )
 {
     return voltage_value<internal_bandgap>( voltage );
 }
 
 struct voltage_reader
 {
-    static constexpr double divider = 11.0;
+  public:
+    static constexpr ufixed16_t divider = ufixed16_t{ 11 };
+    static constexpr ufixed16_t multiplier = divider * reference_voltage_fp16<internal_bandgap>;
 
-    static ALWAYS_INLINE void init()
+  private:
+    static ufixed16_t get_proportion()
     {
-        adcsra = adcsra_fields::aden;
-        admux = admux_fields::refs_internal_1_1v_voltage_reference | admux_fields::mux{ 0b000000 };
+        return ufixed16_t{ ( adc & 0xff00 ) >> 8 } / ufixed16_t{ 255 }; //
     }
 
-    static ALWAYS_INLINE uint16_t read_vcc()
+    static void convert()
     {
         adcsra |= adcsra_fields::adsc;
         while ( adcsra & adcsra_fields::adsc )
         { // Busy waiting loop
         }
-        return adc;
+    }
+
+  public:
+    static void init()
+    {
+        adcsra = adcsra_fields::aden;  // Enable ADC
+        adcsrb = adcsrb_fields::adlar; // Left align bits
+    }
+
+    static ufixed8_t read_vcc()
+    {
+        admux = admux_fields::refs_internal_1_1v_voltage_reference | admux_fields::mux{ 0b000000 };
+        _delay_us( 100 ); // Necessary for the internal reference to stabilize. A 100us delay should do.
+        convert();
+
+        auto result = multiplier * get_proportion();
+        ufixed8_t voltage = ufixed8_t::from_fixed_point<8>( result.raw_value() );
+
+        return voltage;
+    }
+
+    static ufixed8_t read_vdd()
+    {
+        // I use a very cool trick described here: https://ww1.microchip.com/downloads/en/Appnotes/00002447A.pdf. This
+        // way of measuring VCC does not require any external components.
+        admux =
+            admux_fields::refs_vcc_used_as_analog_reference_disconnected_from_pa0_aref | admux_fields::mux{ 0b100001 };
+        convert();
+
+        auto result = reference_voltage_fp16<internal_bandgap> / get_proportion();
+        ufixed8_t voltage = ufixed8_t::from_fixed_point<8>( result.raw_value() );
+
+        return voltage;
     }
 };
 
@@ -303,10 +338,16 @@ main()
     buzzer::disable();
     led_indicator::disable();
 
+    for ( uint8_t i = 0; i < 64; ++i )
+    {
+        auto vdd = voltage_reader::read_vdd();
+        eeprom_update_byte( reinterpret_cast<uint8_t*>( i ), *reinterpret_cast<uint8_t*>( &vdd ) );
+    }
+
     while ( true )
     {
-        auto vcc = voltage_reader::read_vcc();
-        if ( !is_charging() && vcc <= 0.35_v )
+        auto vdd = voltage_reader::read_vdd();
+        if ( !is_charging() && vdd <= 3.20_v )
         {
             led_indicator::toggle();
             _delay_ms( 200 );

@@ -83,25 +83,22 @@ template <auto address, auto width, typename access> class register_wrapper
     ~register_wrapper() = default;
 
   private:
-    ALWAYS_INLINE volatile register_type& underlying() const
-    {
-        return *reinterpret_cast<volatile register_type*>( address );
-    }
+    volatile register_type& underlying() const { return *reinterpret_cast<volatile register_type*>( address ); }
 
   public:
-    ALWAYS_INLINE void set( register_type value ) const
+    void set( register_type value ) const
         requires writable_register<access>
     {
         underlying() = value;
     }
 
-    ALWAYS_INLINE register_type get() const
+    register_type get() const
         requires readable_register<access>
     {
         return underlying();
     }
 
-    ALWAYS_INLINE const register_wrapper& operator=( register_type rhs ) const
+    const register_wrapper& operator=( register_type rhs ) const
         requires writable_register<access>
     {
         set( rhs );
@@ -109,28 +106,28 @@ template <auto address, auto width, typename access> class register_wrapper
     }
 
   public:
-    ALWAYS_INLINE const register_wrapper& operator|=( register_type rhs ) const
+    const register_wrapper& operator|=( register_type rhs ) const
         requires writable_register<access>
     {
         underlying() |= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE const register_wrapper& operator&=( register_type rhs ) const
+    const register_wrapper& operator&=( register_type rhs ) const
         requires writable_register<access>
     {
         underlying() &= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE const register_wrapper& operator^=( register_type rhs ) const
+    const register_wrapper& operator^=( register_type rhs ) const
         requires writable_register<access>
     {
         underlying() ^= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE operator register_type() const
+    operator register_type() const
         requires readable_register<access>
     {
         return get();
@@ -153,7 +150,7 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
     static constexpr register_type mask = max_representable;
 
   public:
-    explicit ALWAYS_INLINE constexpr register_field( register_type value )
+    explicit constexpr register_field( register_type value )
         : underlying_value{ static_cast<register_type>( value << offset ) }
     {
         if ( std::is_constant_evaluated() && value > max_representable )
@@ -163,40 +160,40 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
     }
 
   public:
-    ALWAYS_INLINE constexpr friend register_field operator|( const register_field& lhs, const register_field& rhs )
+    constexpr friend register_field operator|( const register_field& lhs, const register_field& rhs )
     {
         return register_field{ lhs.underlying_value | rhs.underlying_value };
     }
 
-    ALWAYS_INLINE constexpr friend register_field operator&( const register_field& lhs, const register_field& rhs )
+    constexpr friend register_field operator&( const register_field& lhs, const register_field& rhs )
     {
         return register_field{ lhs.underlying_value & rhs.underlying_value };
     }
 
-    ALWAYS_INLINE constexpr friend register_field operator^( const register_field& lhs, const register_field& rhs )
+    constexpr friend register_field operator^( const register_field& lhs, const register_field& rhs )
     {
         return register_field{ lhs.underlying_value ^ rhs.underlying_value };
     }
 
-    ALWAYS_INLINE constexpr register_field& operator|=( const register_type& rhs ) const&
+    constexpr register_field& operator|=( const register_type& rhs ) const&
     {
         underlying_value |= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE constexpr register_field& operator&=( const register_type& rhs ) const&
+    constexpr register_field& operator&=( const register_type& rhs ) const&
     {
         underlying_value &= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE constexpr register_field& operator^=( const register_type& rhs ) const&
+    constexpr register_field& operator^=( const register_type& rhs ) const&
     {
         underlying_value ^= rhs;
         return *this;
     }
 
-    ALWAYS_INLINE constexpr operator register_type() const { return underlying_value; }
+    constexpr operator register_type() const { return underlying_value; }
 };
 
 }; // namespace avrcpp
