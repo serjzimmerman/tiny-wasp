@@ -9,8 +9,12 @@
  */
 
 #include <avr/eeprom.h>
+#include <avr/interrupt.h>
+#include <avr/sleep.h>
+
 #include <util/delay.h>
 
+#include "attiny24a/adc.hpp"
 #include "attiny24a/cpu.hpp"
 #include "attiny24a/porta.hpp"
 
@@ -176,6 +180,27 @@ struct buzzer
     static ALWAYS_INLINE void disable() { tccr1b &= ~tccr1b_fields::cs1::mask; }
 };
 
+using namespace avrcpp::attiny24a::madc;
+
+struct voltage_reader
+{
+    static ALWAYS_INLINE void init()
+    {
+        adcsra = adcsra_fields::aden;
+        admux = admux_fields::refs_internal_1_1v_voltage_reference | admux_fields::mux{ 0b000000 };
+    }
+
+    static ALWAYS_INLINE uint16_t read_vcc()
+    {
+        adcsra |= adcsra_fields::adsc;
+        while ( adcsra & adcsra_fields::adsc )
+        {
+            asm volatile( "" ); // Busy wait loop
+        }
+        return adc;
+    }
+};
+
 // clang-format off
 template <typename T> concept initializable = requires() {
     { T::init() };
@@ -198,6 +223,12 @@ enum class current_state : uint8_t
     state_autonomous,
 };
 
+bool
+is_charging()
+{
+    return !( pina >> porta_fields::pa2 );
+}
+
 } // namespace
 
 current_state EEMEM current_state_eemem = current_state::state_idle;
@@ -205,7 +236,7 @@ current_state EEMEM current_state_eemem = current_state::state_idle;
 int
 main()
 {
-    initialize<led_indicator, buzzer>();
+    initialize<led_indicator, buzzer, voltage_reader>();
 
     buzzer::enable();
     led_indicator::enable();
@@ -214,7 +245,7 @@ main()
 
     if ( state_accessor != current_state::state_idle )
     {
-        for ( uint8_t start = 0, finish = 16; start != finish; ++start )
+        for ( uint8_t start = 0, finish = 2; start != finish; ++start )
         {
             for ( uint8_t i = 0; i < 2; ++i )
             {
@@ -231,5 +262,11 @@ main()
 
     while ( true )
     {
+        auto vcc = voltage_reader::read_vcc();
+        if ( !is_charging() && vcc <= 330 )
+        {
+            led_indicator::toggle();
+            _delay_ms( 200 );
+        }
     }
 }
