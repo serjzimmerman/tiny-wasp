@@ -160,6 +160,10 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
     }
 
   public:
+    constexpr auto get_offset() const { return offset; }
+
+    constexpr auto get_mask() const { return mask; }
+
     constexpr friend register_field operator|( const register_field& lhs, const register_field& rhs )
     {
         return register_field{ lhs.underlying_value | rhs.underlying_value };
