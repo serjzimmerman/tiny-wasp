@@ -146,8 +146,8 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
     static_assert( bit_offset < CHAR_BIT * sizeof( register_type ) );
     static_assert( bit_width <= CHAR_BIT * sizeof( register_type ) && bit_width > 0 );
 
-    static constexpr register_type max_representable = ( 1 << bit_width ) - 1;
-    static constexpr register_type mask = max_representable;
+    static constexpr register_type max_representable = ( register_type{ 1u } << bit_width ) - register_type{ 1u };
+    static constexpr register_type mask = max_representable << bit_offset;
 
   public:
     explicit constexpr register_field( register_type value )
@@ -161,7 +161,6 @@ template <typename reg, auto bit_offset, auto bit_width> class register_field
 
   public:
     constexpr auto get_offset() const { return offset; }
-
     constexpr auto get_mask() const { return mask; }
 
     constexpr friend register_field operator|( const register_field& lhs, const register_field& rhs )

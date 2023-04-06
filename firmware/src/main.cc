@@ -17,12 +17,12 @@
 
 #include "attiny24a/adc.hpp"
 #include "attiny24a/cpu.hpp"
+#include "attiny24a/exint.hpp"
 #include "attiny24a/porta.hpp"
 #include "attiny24a/portb.hpp"
-
-#include "attiny24a/exint.hpp"
 #include "attiny24a/tc0.hpp"
 #include "attiny24a/tc1.hpp"
+#include "attiny24a/wdt.hpp"
 
 #include <fpm/fixed.hpp>
 
@@ -47,24 +47,25 @@ using namespace avrcpp::attiny24a::mexint;
 using namespace avrcpp::attiny24a::mtc1;
 using namespace avrcpp::attiny24a::mtc0;
 using namespace avrcpp::attiny24a::mcpu;
+using namespace avrcpp::attiny24a::mwdt;
 
-template <auto&> class eeprom_variable_wrapper
+template <auto&> class eeprom_variable_accessor
 { // Primary template
 };
 
 // This variable should be marked as EEMEM
 template <typename T, T& variable_storage>
     requires ( sizeof( T ) == 1 )
-class eeprom_variable_wrapper<variable_storage>
+class eeprom_variable_accessor<variable_storage>
 {
   private:
     uint8_t* eep_ptr() { return reinterpret_cast<uint8_t*>( &variable_storage ); }
     const uint8_t* eep_ptr() const { return reinterpret_cast<const uint8_t*>( &variable_storage ); }
 
   public:
-    eeprom_variable_wrapper() = default;
+    eeprom_variable_accessor() = default;
 
-    eeprom_variable_wrapper& operator=( const T& rhs )
+    eeprom_variable_accessor& operator=( const T& rhs )
     {
         eeprom_update_byte( eep_ptr(), *reinterpret_cast<const uint8_t*>( &rhs ) );
         return *this;
@@ -73,11 +74,11 @@ class eeprom_variable_wrapper<variable_storage>
     // clang-format off
     T get() const { auto res = eeprom_read_byte( eep_ptr() ); return *reinterpret_cast<T *>(&res); }
     operator T() const { return get(); }
-    eeprom_variable_wrapper& operator|=( const T& rhs ) const& { *this = +*this | rhs; return *this; }
-    eeprom_variable_wrapper& operator&=( const T& rhs ) const& { *this = +*this & rhs; return *this; }
-    eeprom_variable_wrapper& operator^=( const T& rhs ) const& { *this = +*this ^ rhs; return *this; }
-    eeprom_variable_wrapper& operator+=( const T& rhs ) const& { *this = +*this + rhs; return *this; }
-    eeprom_variable_wrapper& operator-=( const T& rhs ) const& { *this = +*this - rhs; return *this; }
+    eeprom_variable_accessor& operator|=( const T& rhs ) const& { *this = +*this | rhs; return *this; }
+    eeprom_variable_accessor& operator&=( const T& rhs ) const& { *this = +*this & rhs; return *this; }
+    eeprom_variable_accessor& operator^=( const T& rhs ) const& { *this = +*this ^ rhs; return *this; }
+    eeprom_variable_accessor& operator+=( const T& rhs ) const& { *this = +*this + rhs; return *this; }
+    eeprom_variable_accessor& operator-=( const T& rhs ) const& { *this = +*this - rhs; return *this; }
     // clang-format on
 };
 
@@ -278,6 +279,12 @@ class voltage_reader
         adcsrb = adcsrb_fields::adlar; // Left align bits
     }
 
+    static void deinit()
+    {
+        adcsra = 0;
+        adcsrb = 0;
+    }
+
     static void setup_for_vcc()
     {
         admux = admux_fields::refs_internal_1_1v_voltage_reference | admux_fields::mux{ 0b000000 };
@@ -337,13 +344,6 @@ enum class current_state : uint8_t
 
 current_state EEMEM current_state_eemem = current_state::state_idle;
 
-auto
-get_field( auto&& value, auto&& field )
-{
-    using type = std::remove_cvref_t<decltype( field )>;
-    return type{ ( value & field.get_mask() ) >> field.get_offset() };
-}
-
 class button
 {
   public:
@@ -390,7 +390,7 @@ ISR( PCINT1_vect )
 // Interrupt used to debounce a button
 ISR( TIM0_COMPA_vect )
 {
-    button::debounce_state = ( button::debounce_state << 1 ) | get_field( pina, pina_fields::pa3 );
+    button::debounce_state = ( button::debounce_state << 1 ) | ( ( pina >> pina_fields::pa3.get_offset() ) & 1 );
     if ( button::debounce_state == 0 )
     {
         timsk0 &= ~timsk0_fields::ocie0a;
@@ -399,142 +399,217 @@ ISR( TIM0_COMPA_vect )
     }
 }
 
+struct watchdog
+{
+  public:
+    static void disable()
+    {
+        mcusr = 0;
+        wdtcsr |= wdtcsr_fields::wdce | wdtcsr_fields::wde;
+        wdtcsr = 0;
+    }
+
+    static void enable( wdtcsr_fields::wdp cycles )
+    {
+        wdtcsr = wdtcsr_fields::wdie | cycles; // Configure
+        wdtcsr |= wdtcsr_fields::wde;          // Enable
+    }
+};
+
+struct buzzer_input
+{
+  public:
+    static void init()
+    {
+        ddrb &= ~ddrb_fields::pb2;
+        portb = portb_fields::pb2;
+    }
+};
+
+ISR( WDT_vect )
+{
+    // -- From the datasheet -- :
+    // If WDE is set, WDIE is automatically cleared by hardware when a time-out occurs. This is useful for keeping the
+    // watchdog reset security while using the interrupt. After the WDIE bit is cleared, the next time-out will generate
+    // a reset. To avoid the watchdog reset, WDIE must be set after each interrupt.
+    watchdog::disable();
+}
+
+void
+reset_io()
+{
+    ddra = 0;
+    ddrb = 0;
+    portb = 0;
+    porta = 0;
+}
+
+void
+idle_configure()
+{
+    // Step 1. Clear all gpio configuration for a clean slate.
+    reset_io();
+
+    // Step 2. Initialize adc.
+    initialize<voltage_reader>();
+
+    // Step 3. Set up adc for vcc reading and prepare the first reading.
+    voltage_reader::setup_for_vcc();
+    voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
+
+#if 1
+    led_indicator::init();
+#endif
+
+    // Step 4. Set sleep mode.
+    set_sleep_mode( SLEEP_MODE_PWR_DOWN );
+};
+
+[[nodiscard]] current_state
+idle_loop()
+{
+    auto vcc = voltage_reader::read_vcc();
+    constexpr ufixed8_t threshold = 3.3_v;
+
+#if 1
+    led_indicator::toggle();
+#endif
+
+    if ( vcc <= threshold )
+    {
+        watchdog::enable( wdtcsr_fields::wdp_oscillator_cycles_256k ); // 2.0s timeout, should save a bunch of
+        // power Should go into sleep immediately after setting the appropriate sleep mode to avoid other interrupts
+        // going in here.
+        sleep_mode();
+        return current_state::state_idle;
+    }
+
+    return current_state::state_armed;
+};
+
+void
+armed_configure()
+{
+    // Step 1. Clear all gpio configuration for a clean slate.
+    reset_io();
+
+    // Step 2. Initialize buzzer, led & adc.
+    initialize<buzzer_input, buzzer, led_indicator, voltage_reader>();
+
+    // Step 3. Set up adc for vcc reading and prepare the first reading.
+    voltage_reader::setup_for_vcc();
+    voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
+};
+
+[[nodiscard]] current_state
+armed_loop()
+{
+    if ( pinb & pinb_fields::pb2 )
+    { // Input is high, don't beep
+        buzzer::disable();
+        led_indicator::disable();
+    } else
+    {
+        buzzer::enable();
+        led_indicator::enable();
+    }
+
+    auto vcc = voltage_reader::read_vcc();
+    constexpr ufixed8_t threshold = 3.0_v;
+
+    if ( vcc >= threshold )
+    {
+        return current_state::state_armed; /* Nothing else to do */
+    }
+
+    voltage_reader::deinit();
+    return current_state::state_autonomous; // TODO: Replace with proper transition
+};
+
+void
+autonomous_configure()
+{
+    // Step 1. Clear all gpio configuration for a clean slate.
+    reset_io();
+
+    // Step 2. Initialize buzzer, led & adc.
+    initialize<buzzer, led_indicator, button>();
+};
+
+[[nodiscard]] current_state
+autonomous_loop()
+{
+    auto enable = []() {
+        buzzer::enable();
+        led_indicator::enable();
+    };
+
+    auto disable = []() {
+        buzzer::disable();
+        led_indicator::disable();
+    };
+
+    enable();
+    _delay_ms( 150 );
+    disable();
+
+    ATOMIC_BLOCK( ATOMIC_FORCEON )
+    {
+        if ( button::is_clicked() )
+        {
+            return current_state::state_idle;
+        }
+        set_sleep_mode( button::is_debouncing() ? SLEEP_MODE_IDLE : SLEEP_MODE_PWR_DOWN );
+    }
+
+    watchdog::enable( wdtcsr_fields::wdp_oscillator_cycles_256k ); // 2.0s timeout, should save a bunch of power.
+    sleep_mode();
+
+    return current_state::state_autonomous;
+};
+
 } // namespace
 
 int
 main()
 {
-    cli();
-
-    eeprom_variable_wrapper<current_state_eemem> state;
+    eeprom_variable_accessor<current_state_eemem> state_accessor;
     bool configured = false;
 
-    initialize<led_indicator, voltage_reader, buzzer, button>();
-
-#if 0
-    voltage_reader::setup_for_vcc();
-    voltage_reader::convert(); // Discard initial value
-
-    auto vcc = voltage_reader::read_vcc();
-
-    if ( vcc > 0.5_v )
-    {
-        for ( uint8_t i = 0; i < 64; ++i )
-        {
-            auto vdd = voltage_reader::read_vcc();
-            eeprom_update_byte( reinterpret_cast<uint8_t*>( i ), *reinterpret_cast<uint8_t*>( &vdd ) );
-        }
-    }
-#endif
-
-    auto idle_configure = [ & ]() {
-        // Step 1. Clear all gpio configuration for a clean slate.
-        ddra = 0;
-        ddrb = 0;
-        portb = 0;
-        porta = 0;
-
-        // Step 2. Initialize adc
-        initialize<voltage_reader>();
-
-        // Step 3. Set up adc for vcc reading and prepare the first reading.
-        voltage_reader::setup_for_vcc();
-        voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
-    };
-
-    auto armed_configure = [ & ]() {
-        // Step 1. Clear all gpio configuration for a clean slate.
-        ddra = 0;
-        ddrb = 0;
-        portb = 0 | portb_fields::pb2;
-        porta = 0;
-
-        // Step 2. Initialize buzzer, led & adc.
-        initialize<buzzer, led_indicator, voltage_reader>();
-
-        // Step 3. Set up adc for vcc reading and prepare the first reading.
-        voltage_reader::setup_for_vcc();
-        voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
-    };
-
-    auto autonomous_configure = [ & ]() {
-
-    };
-
-    auto idle_loop = [ & ]() {
-
-    };
-
-    auto armed_loop = [ & ]() {
-        if ( !get_field( pinb, pinb_fields::pb2 ) )
-        { // Input is low, should beep
-            buzzer::enable();
-            led_indicator::enable();
-        } else
-        {
-            buzzer::disable();
-            led_indicator::disable();
-        }
-
-        auto vcc = voltage_reader::read_vcc();
-        constexpr ufixed8_t threshold = 3.3_v;
-
-        if ( vcc >= threshold )
-        {
-            return; /* Nothing else to do */
-        }
-
-        // If we get here, then we need to transition to autonomous mode and configure necessary hardware
-        state = current_state::state_autonomous;
-        configured = false;
-    };
-
-    auto autonomous_loop = [ & ]() {
-
-    };
-
+    sei();
     while ( true )
     {
         auto should_configure = !std::exchange( configured, true );
+        auto current = state_accessor.get();
 
-        switch ( state.get() )
+        current_state next_state;
+
+        switch ( current )
         {
         case current_state::state_idle:
             if ( should_configure )
             {
                 idle_configure();
             }
-            idle_loop();
+            next_state = idle_loop();
             break;
         case current_state::state_armed:
             if ( should_configure )
             {
                 armed_configure();
             }
-            armed_loop();
+            next_state = armed_loop();
             break;
         case current_state::state_autonomous:
             if ( should_configure )
             {
                 autonomous_configure();
             }
-            autonomous_loop();
+            next_state = autonomous_loop();
             break;
         }
 
-        ATOMIC_BLOCK( ATOMIC_FORCEON )
-        {
-            if ( button::is_clicked() )
-            {
-                led_indicator::toggle();
-            }
-
-            bool should_power_down = !button::is_debouncing();
-            set_sleep_mode( should_power_down ? SLEEP_MODE_PWR_DOWN : SLEEP_MODE_IDLE );
-        }
-
-        // Should go into sleep immediately after setting the appropriate sleep mode to avoid other
-        // interrupts going in here.
-        sleep_mode();
+        configured = ( next_state == current );
+        state_accessor = next_state;
     }
 }
