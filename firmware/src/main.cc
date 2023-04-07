@@ -82,6 +82,15 @@ class eeprom_variable_accessor<variable_storage>
     // clang-format on
 };
 
+auto
+atomic_forceon_call( auto functor )
+{
+    ATOMIC_BLOCK( ATOMIC_FORCEON )
+    {
+        return functor();
+    }
+}
+
 constexpr double cpu_frequency = F_CPU;
 
 class led_indicator
@@ -205,6 +214,7 @@ class buzzer
     static void init()
     {
         ocr1a = get_prescalers().compare;
+        tcnt1 = 0;
 
         tccr1a = tccr1a_fields::wgm1_3 // Mode 7: Fast PWM
             | tccr1a_fields::com1a_1;  // Toggle on output compare
@@ -226,6 +236,45 @@ class buzzer
     }
 };
 
+class time_counter
+{
+  public:
+    static void init()
+    {
+        tccr1a = 0;
+        tccr1b = tccr1b_fields::cs1_running_clk_1024;
+    }
+
+  public:
+    static void enable()
+    {
+        tcnt1 = 0;
+        tifr1 = 0; // Clear interrupt flags
+    }
+
+    static void disable()
+    {
+        tccr1b = 0; // Clear clock
+    }
+
+  public:
+    static ufixed16_t get_time()
+    {
+        constexpr double divider_fp = cpu_frequency / ( 16 * 1024.0 );
+
+        static_assert(
+            static_cast<double>( std::numeric_limits<ufixed16_t>::max() ) > divider_fp &&
+            static_cast<double>( std::numeric_limits<ufixed16_t>::min() ) < divider_fp );
+
+        constexpr auto divider = ufixed16_t{ divider_fp };
+        util::static_print<static_cast<double>( divider )>();
+
+        // Can't measure large time intervals. Should stick to the maximum of 4.080 seconds. Otherwise
+        // the fixed point variable will surely overflow.
+        return ( ( tcnt1.get() >> 4 ) / divider );
+    }
+};
+
 struct internal_bandgap
 {
 };
@@ -236,9 +285,7 @@ template <> constexpr double reference_voltage<internal_bandgap> = 1.1;
 template <typename T> constexpr ufixed16_t reference_voltage_fp16 = ufixed16_t{ reference_voltage<T> };
 template <typename T> constexpr ufixed8_t reference_voltage_fp8 = ufixed8_t{ reference_voltage<T> };
 
-template <typename flag>
-consteval ufixed8_t
-voltage_value( long double voltage )
+consteval ufixed8_t operator"" _v( long double voltage )
 {
     if ( voltage < static_cast<double>( std::numeric_limits<ufixed8_t>::min() ) ||
          voltage > static_cast<double>( std::numeric_limits<ufixed8_t>::max() ) )
@@ -249,9 +296,9 @@ voltage_value( long double voltage )
     return ufixed8_t{ voltage };
 }
 
-consteval ufixed8_t operator"" _v( long double voltage )
+consteval ufixed16_t operator"" _sec( long double seconds )
 {
-    return voltage_value<internal_bandgap>( voltage );
+    return ufixed16_t{ seconds };
 }
 
 class voltage_reader
@@ -335,14 +382,14 @@ initialize()
     ( Ts::init(), ... );
 }
 
-enum class current_state : uint8_t
+enum class automaton_state : uint8_t
 {
     state_idle,
     state_armed,
     state_autonomous,
 };
 
-current_state EEMEM current_state_eemem = current_state::state_idle;
+automaton_state EEMEM current_state_eemem = automaton_state::state_armed;
 
 class button
 {
@@ -465,7 +512,7 @@ idle_configure()
     set_sleep_mode( SLEEP_MODE_PWR_DOWN );
 };
 
-[[nodiscard]] current_state
+[[nodiscard]] automaton_state
 idle_loop()
 {
     auto vcc = voltage_reader::read_vcc();
@@ -481,10 +528,10 @@ idle_loop()
         // power Should go into sleep immediately after setting the appropriate sleep mode to avoid other interrupts
         // going in here.
         sleep_mode();
-        return current_state::state_idle;
+        return automaton_state::state_idle;
     }
 
-    return current_state::state_armed;
+    return automaton_state::state_armed;
 };
 
 void
@@ -501,7 +548,7 @@ armed_configure()
     voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
 };
 
-[[nodiscard]] current_state
+[[nodiscard]] automaton_state
 armed_loop()
 {
     if ( pinb & pinb_fields::pb2 )
@@ -519,11 +566,10 @@ armed_loop()
 
     if ( vcc >= threshold )
     {
-        return current_state::state_armed; /* Nothing else to do */
+        return automaton_state::state_armed; /* Nothing else to do */
     }
 
-    voltage_reader::deinit();
-    return current_state::state_autonomous; // TODO: Replace with proper transition
+    return automaton_state::state_autonomous;
 };
 
 void
@@ -533,39 +579,84 @@ autonomous_configure()
     reset_io();
 
     // Step 2. Initialize buzzer, led & adc.
-    initialize<buzzer, led_indicator, button>();
+    initialize<buzzer, led_indicator, button, voltage_reader>();
+
+    // Step 3. Setup adc for vcc reading
+    voltage_reader::setup_for_vcc();
+    voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
 };
 
-[[nodiscard]] current_state
+[[nodiscard]] automaton_state
 autonomous_loop()
 {
-    auto enable = []() {
-        buzzer::enable();
-        led_indicator::enable();
+    /* -- Step 1 -- Here we check if there has been a triple press to transition to idle state */
+    auto clicked = []() {
+        return atomic_forceon_call( []() { return button::is_clicked(); } );
     };
 
-    auto disable = []() {
-        buzzer::disable();
-        led_indicator::disable();
-    };
+    if ( clicked() )
+    { // First button press.
+        time_counter::init();
 
-    enable();
-    _delay_ms( 150 );
-    disable();
+        bool is_clicked = false;
+        auto get_clicked = [ &is_clicked ]() {
+            return std::exchange( is_clicked, false );
+        };
 
-    ATOMIC_BLOCK( ATOMIC_FORCEON )
-    {
-        if ( button::is_clicked() )
+        auto wait_idle = [ &is_clicked, clicked ]( ufixed16_t time ) {
+            time_counter::enable();
+            while ( time_counter::get_time() <= time )
+            {
+                if ( ( is_clicked = clicked() ) )
+                {
+                    break;
+                }
+                _delay_ms( 50 );
+            }
+        };
+
+        constexpr auto delay = 0.35_sec;
+
+        wait_idle( delay );
+        if ( get_clicked() )
         {
-            return current_state::state_idle;
+            wait_idle( delay );
+
+            if ( get_clicked() )
+            {
+                return automaton_state::state_idle;
+            }
         }
-        set_sleep_mode( button::is_debouncing() ? SLEEP_MODE_IDLE : SLEEP_MODE_PWR_DOWN );
     }
 
-    watchdog::enable( wdtcsr_fields::wdp_oscillator_cycles_256k ); // 2.0s timeout, should save a bunch of power.
-    sleep_mode();
+    /* -- Step 2 -- Read VCC and transition back into an armed state if possible */
+    auto vcc = voltage_reader::read_vcc();
+    constexpr ufixed8_t threshold = 3.3_v;
 
-    return current_state::state_autonomous;
+    if ( vcc >= threshold )
+    {
+        return automaton_state::state_armed;
+    }
+
+    /* -- Step 3 -- Autonomous buzzing with power savings */
+    buzzer::init(); // Don't forget to reinitialize the buzzer, because previous configurations were rewritten by the
+                    // timer delay. Possibly
+
+    buzzer::enable();
+    led_indicator::enable();
+    _delay_ms( 150 );
+    buzzer::disable();
+    led_indicator::disable();
+
+    auto sleep = []( auto cycles ) {
+        auto is_debouncing = atomic_forceon_call( []() { return button::is_debouncing(); } );
+        set_sleep_mode( is_debouncing ? SLEEP_MODE_IDLE : SLEEP_MODE_PWR_DOWN );
+        watchdog::enable( cycles );
+        sleep_mode();
+    };
+
+    sleep( wdtcsr_fields::wdp_oscillator_cycles_256k );
+    return automaton_state::state_autonomous;
 };
 
 } // namespace
@@ -582,25 +673,25 @@ main()
         auto should_configure = !std::exchange( configured, true );
         auto current = state_accessor.get();
 
-        current_state next_state;
+        automaton_state next_state;
 
         switch ( current )
         {
-        case current_state::state_idle:
+        case automaton_state::state_idle:
             if ( should_configure )
             {
                 idle_configure();
             }
             next_state = idle_loop();
             break;
-        case current_state::state_armed:
+        case automaton_state::state_armed:
             if ( should_configure )
             {
                 armed_configure();
             }
             next_state = armed_loop();
             break;
-        case current_state::state_autonomous:
+        case automaton_state::state_autonomous:
             if ( should_configure )
             {
                 autonomous_configure();
