@@ -389,7 +389,7 @@ enum class automaton_state : uint8_t
     state_autonomous,
 };
 
-automaton_state EEMEM current_state_eemem = automaton_state::state_armed;
+automaton_state EEMEM current_state_eemem = automaton_state::state_idle;
 
 class button
 {
@@ -508,10 +508,6 @@ idle_configure()
     voltage_reader::setup_for_vcc();
     voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
 
-#if 1
-    led_indicator::init();
-#endif
-
     // Step 4. Set sleep mode.
     set_sleep_mode( SLEEP_MODE_PWR_DOWN );
 };
@@ -522,13 +518,9 @@ idle_loop()
     auto vcc = voltage_reader::read_vcc();
     constexpr ufixed8_t threshold = 3.3_v;
 
-#if 1
-    led_indicator::toggle();
-#endif
-
     if ( vcc <= threshold )
     {
-        watchdog::enable( wdtcsr_fields::wdp_oscillator_cycles_256k ); // 2.0s timeout, should save a bunch of
+        watchdog::enable( wdtcsr_fields::wdp_oscillator_cycles_128k ); // 1.0s timeout, should save a bunch of
         // power Should go into sleep immediately after setting the appropriate sleep mode to avoid other interrupts
         // going in here.
         sleep_mode();
@@ -572,6 +564,40 @@ armed_loop()
     {
         return automaton_state::state_armed; /* Nothing else to do */
     }
+
+    // Here there are multiple possibilities. For the convenience it would be cool if it were possible to transition
+    // from armed back to idle without pressing the possibly inaccessible button: like plugging and unplugging power to
+    // the copter in fast succession.
+
+    time_counter::init();
+    time_counter::enable();
+
+    constexpr auto total_time = 2.0_sec;
+    constexpr uint8_t needed_switches = 3;
+
+    uint8_t switch_count = 0;
+    bool is_low = true;
+
+    while ( time_counter::get_time() <= total_time )
+    {
+        _delay_ms( 50 ); // Ugly hardcoded delay for ADC "debouncing". This should be sufficient.
+        vcc = voltage_reader::read_vcc();
+        bool is_low_prev = is_low;
+        is_low = ( vcc <= threshold );
+
+        if ( is_low && !is_low_prev )
+        {
+            ++switch_count;
+        }
+
+        if ( switch_count >= needed_switches )
+        {
+            time_counter::disable();
+            return automaton_state::state_idle;
+        }
+    }
+
+    buzzer::init();
 
     return automaton_state::state_autonomous;
 };
