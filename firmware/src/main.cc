@@ -414,8 +414,10 @@ class button
         tccr0b = get_prescalers().clock;
 
         gimsk |= gimsk_fields::pcie_2;
-        pcmsk1 |= ddrb_fields::pb0;
     }
+
+    static void enable() { pcmsk1 = ddrb_fields::pb0; }
+    static void disable() { pcmsk1 = 0; }
 
     static bool is_debouncing() { return !( debounce_state == 0 ); }
     static bool is_clicked() { return std::exchange( pressed, false ); }
@@ -489,6 +491,8 @@ reset_io()
     ddrb = 0;
     portb = 0;
     porta = 0;
+
+    button::disable();
 }
 
 void
@@ -584,6 +588,9 @@ autonomous_configure()
     // Step 3. Setup adc for vcc reading
     voltage_reader::setup_for_vcc();
     voltage_reader::convert(); // Discard initial reading to allow the reference to settle.
+
+    // Step 4. Enable button. More exactly here I enable the the pin change interrupt.
+    button::enable();
 };
 
 [[nodiscard]] automaton_state
